@@ -227,4 +227,4 @@ See [`LICENSE`](LICENSE) for more information.
 
 Feel free to star the repository, experiment with the implementation, and improve the design.
 
-Built with ❤️ and Flutter.
+Built with Abolfazl.
