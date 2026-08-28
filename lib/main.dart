@@ -42,9 +42,11 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: false,
       themeMode: _themeMode,
 
-      // ─────────────────────────────────────────
+      // Smooth theme transition
+      themeAnimationDuration: const Duration(milliseconds: 320),
+      themeAnimationCurve: Curves.easeOutCubic,
+
       // LIGHT THEME
-      // ─────────────────────────────────────────
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: false,
@@ -54,9 +56,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
 
-      // ─────────────────────────────────────────
       // DARK THEME
-      // ─────────────────────────────────────────
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: false,
@@ -86,122 +86,115 @@ class NavigationDemo extends StatefulWidget {
 }
 
 class _NavigationDemoState extends State<NavigationDemo> {
-  final ValueNotifier<int> _selectedIndex = ValueNotifier<int>(0);
+  int _selectedIndex = 0;
 
-  @override
-  void dispose() {
-    _selectedIndex.dispose();
-    super.dispose();
-  }
+  static const List<Widget> _pages = [
+    _EmptyPage(),
+    _EmptyPage(),
+    _EmptyPage(),
+    _EmptyPage(),
+  ];
 
   void _selectTab(int index) {
-    if (_selectedIndex.value == index) return;
+    if (_selectedIndex == index) return;
 
-    _selectedIndex.value = index;
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isDark =
+        Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
+      // Prevent unnecessary transparent painting behind
+      // the bottom navigation bar.
+      extendBody: false,
+
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // ─────────────────────────────────────
-          // PAGES
-          // ─────────────────────────────────────
+
           RepaintBoundary(
-            child: ValueListenableBuilder<int>(
-              valueListenable: _selectedIndex,
-              builder: (context, index, _) {
-                return IndexedStack(
-                  index: index,
-                  children: const [
-                    _EmptyPage(),
-                    _EmptyPage(),
-                    _EmptyPage(),
-                    _EmptyPage(),
-                  ],
-                );
-              },
+            child: IndexedStack(
+              index: _selectedIndex,
+              children: _pages,
             ),
           ),
 
-          // ─────────────────────────────────────
-          // THEME BUTTON
-          // ─────────────────────────────────────
           Positioned(
-            top: MediaQuery.of(context).padding.top + 14,
+            top: MediaQuery.paddingOf(context).top + 14,
             right: 18,
-            child: _ThemeButton(
-              isDark: isDark,
-              onPressed: widget.onToggleTheme,
+            child: RepaintBoundary(
+              child: _ThemeButton(
+                isDark: isDark,
+                onPressed: widget.onToggleTheme,
+              ),
             ),
           ),
         ],
       ),
 
-      // ─────────────────────────────────────────
-      // LIQUID GLASS NAVIGATION
-      // ─────────────────────────────────────────
       bottomNavigationBar: SafeArea(
         top: false,
         minimum: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+
         child: RepaintBoundary(
-          child: ValueListenableBuilder<int>(
-            valueListenable: _selectedIndex,
-            builder: (context, selectedIndex, _) {
-              return GlassTabBar.bottom(
-                selectedIndex: selectedIndex,
-                onTabSelected: _selectTab,
-                tabs: [
-                  GlassTab(
-                    icon: Icon(
-                      selectedIndex == 0
-                          ? CupertinoIcons.chat_bubble_2_fill
-                          : CupertinoIcons.chat_bubble_2,
-                    ),
-                    label: 'Chats',
-                  ),
-                  GlassTab(
-                    icon: Icon(
-                      selectedIndex == 1
-                          ? CupertinoIcons.person_2_fill
-                          : CupertinoIcons.person_2,
-                    ),
-                    label: 'Contacts',
-                  ),
-                  GlassTab(
-                    icon: Icon(
-                      selectedIndex == 2
-                          ? CupertinoIcons.gear_alt_fill
-                          : CupertinoIcons.gear,
-                    ),
-                    label: 'Settings',
-                  ),
-                  GlassTab(
-                    icon: Icon(
-                      selectedIndex == 3
-                          ? CupertinoIcons.person_crop_circle_fill
-                          : CupertinoIcons.person_crop_circle,
-                    ),
-                    label: 'Profile',
-                  ),
-                ],
-              );
-            },
+          child: GlassTabBar.bottom(
+            selectedIndex: _selectedIndex,
+            onTabSelected: _selectTab,
+
+            tabs: const [
+              GlassTab(
+                icon: Icon(
+                  CupertinoIcons.chat_bubble_2,
+                ),
+                activeIcon: Icon(
+                  CupertinoIcons.chat_bubble_2_fill,
+                ),
+                label: 'Chats',
+              ),
+
+              GlassTab(
+                icon: Icon(
+                  CupertinoIcons.person_2,
+                ),
+                activeIcon: Icon(
+                  CupertinoIcons.person_2_fill,
+                ),
+                label: 'Contacts',
+              ),
+
+              GlassTab(
+                icon: Icon(
+                  CupertinoIcons.gear,
+                ),
+                activeIcon: Icon(
+                  CupertinoIcons.gear_alt_fill,
+                ),
+                label: 'Settings',
+              ),
+
+              GlassTab(
+                icon: Icon(
+                  CupertinoIcons.person_crop_circle,
+                ),
+                activeIcon: Icon(
+                  CupertinoIcons.person_crop_circle_fill,
+                ),
+                label: 'Profile',
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
-
-// ───────────────────────────────────────────────
-// THEME BUTTON
-// ───────────────────────────────────────────────
 
 class _ThemeButton extends StatelessWidget {
   final bool isDark;
@@ -214,53 +207,79 @@ class _ThemeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(24),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOutCubic,
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(23),
-            border: Border.all(
+    return RepaintBoundary(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(23),
+
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+
+            width: 46,
+            height: 46,
+
+            decoration: BoxDecoration(
               color: isDark
-                  ? Colors.white.withOpacity(0.12)
-                  : Colors.black.withOpacity(0.08),
-            ),
-          ),
-          child: Center(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              switchInCurve: Curves.easeOutBack,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                return ScaleTransition(
-                  scale: animation,
-                  child: RotationTransition(
-                    turns: Tween<double>(
-                      begin: 0.15,
-                      end: 0,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                );
-              },
-              child: Icon(
-                isDark
-                    ? CupertinoIcons.sun_max_fill
-                    : CupertinoIcons.moon_fill,
-                key: ValueKey(isDark),
-                size: 21,
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.82),
+
+              borderRadius: BorderRadius.circular(23),
+
+              border: Border.all(
                 color: isDark
-                    ? Colors.white
-                    : const Color(0xFF202124),
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.black.withValues(alpha: 0.07),
+              ),
+
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+            ),
+
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 350),
+                switchInCurve: Curves.easeOutBack,
+                switchOutCurve: Curves.easeInCubic,
+
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: animation,
+                      child: RotationTransition(
+                        turns: Tween<double>(
+                          begin: 0.08,
+                          end: 0.0,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    ),
+                  );
+                },
+
+                child: Icon(
+                  isDark
+                      ? CupertinoIcons.sun_max_fill
+                      : CupertinoIcons.moon_fill,
+
+                  key: ValueKey(isDark),
+
+                  size: 21,
+
+                  color: isDark
+                      ? Colors.white
+                      : const Color(0xFF202124),
+                ),
               ),
             ),
           ),
@@ -269,10 +288,6 @@ class _ThemeButton extends StatelessWidget {
     );
   }
 }
-
-// ───────────────────────────────────────────────
-// EMPTY PAGE
-// ───────────────────────────────────────────────
 
 class _EmptyPage extends StatelessWidget {
   const _EmptyPage();
